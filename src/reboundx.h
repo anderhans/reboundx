@@ -170,6 +170,7 @@ enum rebx_integrator {
 enum rebx_interpolation_type {
     REBX_INTERPOLATION_NONE = 0,
     REBX_INTERPOLATION_SPLINE = 1,
+    REBX_INTERPOLATION_LINEAR = 2,
 };
 
 /****************************************
