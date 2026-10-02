@@ -129,6 +129,40 @@ struct rebx_interpolator* rebx_create_interpolator(struct rebx_extras* const reb
     return interp;
 }
 
+/**
+ * Given a monotonic array xa[0..(n-1)] and any array ya[0..(n-1)] and a value
+ * of x, this returns a linearly interpolated value y.
+ * 
+ * Adapted from the cubic spline interpolation above, rebx_splint().
+ */
+static double rebx_linear(struct rebx_extras* const rebx, const double* xa, const double* ya, const double* y2a, const double x, int* klo, const int n) {
+    double h, b, a;
+    if (xa[*klo] > x) { // backward case
+        while (xa[*klo-1] > x) {
+            *klo = *klo-1;
+        }
+        if (xa[*klo-1] <= x) {
+            *klo = *klo-1; // back one more
+        }
+    }
+    else { // forward case
+        while (xa[*klo+1] <= x && *klo+1 != n-1) {
+            *klo = *klo+1;
+        }
+    }
+    h = xa[*klo+1] - xa[*klo];
+    if (h == 0.0) { // xa's must be distinct
+        rebx_error(rebx, "Linear run-time error...\n");
+        rebx_error(rebx, "Bad xa input to routine lint\n");
+        rebx_error(rebx, "...now exiting to system...\n");
+        return 0;
+    }
+    a = (xa[*klo+1]-x) / h;
+    b = (x - xa[*klo]) / h;
+    // evaluate linear
+    return a*ya[*klo] + b*ya[*klo+1];
+}
+
 void rebx_init_interpolator(struct rebx_extras* const rebx, struct rebx_interpolator* const interp, const int Nvalues, const double* times, const double* values, enum rebx_interpolation_type interpolation){
     interp->Nvalues = Nvalues;
     interp->interpolation = interpolation;
@@ -170,6 +204,10 @@ double rebx_interpolate(struct rebx_extras* const rebx, struct rebx_interpolator
         case REBX_INTERPOLATION_SPLINE:
         {
             return rebx_splint(rebx, interpolator->times, interpolator->values, interpolator->y2, time, &interpolator->klo, interpolator->Nvalues); // interpolate at passed time
+        }
+        case REBX_INTERPOLATION_LINEAR:
+        {
+            return rebx_linear(rebx, interpolator->times, interpolator->values, interpolator->y2, time, &interpolator->klo, interpolator->Nvalues); // interpolate at passed time
         }
         default:
         {
